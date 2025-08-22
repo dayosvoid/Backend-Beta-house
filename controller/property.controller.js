@@ -53,17 +53,39 @@ const createPropertyData = async(req,res,next)=>{
         }
         console.log({message:'error while uploading'});
         next(error)
-    }
+    }finally {
+        // This block will always execute to clean up the temporary file
+        if (localFilePath && fs.existsSync(localFilePath)) {
+            try {
+                fs.unlinkSync(localFilePath);
+                console.log(`Local file ${localFilePath} deleted successfully.`);
+            } catch (unlinkError) {
+                console.error(`Error deleting local file ${localFilePath}:`, unlinkError);
+            }
+  }    }
 }
 
-const getAllProperty = async (req,res,next)=>{
-    try {
-        const allProperties = await Property.find({})
-        res.status(200).json({success:true, allProperties})
-    } catch (error) {
-        next(error)
-    }
-}
+const getAllProperty = async (req, res, next) => {
+  try {
+    const PAGE_SIZE = 9;
+    const page = parseInt(req.query.page, 10) || 1;
+
+    const skip = (page - 1) * PAGE_SIZE;
+    const total = await Property.countDocuments({});
+
+    const allProperties = await Property.find({}).limit(PAGE_SIZE).skip(skip);
+
+    res.json({
+      success: true,
+      totalItems: total,
+      totalPages: Math.ceil(total / PAGE_SIZE),
+      currentPage: page,
+      properties: allProperties,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
     createPropertyData,
