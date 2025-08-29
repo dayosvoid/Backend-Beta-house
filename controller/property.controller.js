@@ -1,6 +1,7 @@
 const Property = require('../model/property.model')
 const {uploadToCloudinary} = require('../helper/cloudinary.helper')
 const fs = require('fs') 
+const propertyModel = require('../model/property.model')
 
 
 const createPropertyData = async(req,res,next)=>{
@@ -87,7 +88,42 @@ const getAllProperty = async (req, res, next) => {
   }
 };
 
+
+const searchForProperty = async (req, res, next) => {
+  const { location, bedroom, name } = req.query;
+  const query = {};
+
+  if (name) {
+    query.name = { $regex: name, $options: "i" };
+  }
+
+  if (location) {
+    query.location = { $regex: location, $options: "i" };
+  }
+
+  if (bedroom) {
+
+    if (!isNaN(bedroom)) {
+      query['description.bedRoom'] = parseInt(bedroom);
+    }
+  }
+
+  try {
+    const searchedProperty = await Property.find(query);
+
+    if (searchedProperty.length === 0) {
+      return res.status(404).json({ message: 'No properties found matching the criteria.' });
+    }
+    return res.status(200).json({ searchedProperty });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
     createPropertyData,
-    getAllProperty
+    getAllProperty,
+    searchForProperty
 }
